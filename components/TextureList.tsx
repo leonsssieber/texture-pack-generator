@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { fileToFrame, frameToDataURL, uid, emptyFrame } from "@/lib/image";
 import { Texture } from "@/lib/types";
-import { Plus, Upload, Trash2, Search, Package } from "lucide-react";
+import { Plus, Upload, Trash2, Search, Package, Boxes } from "lucide-react";
 import JarImport from "./JarImport";
 
 function Thumb({ t }: { t: Texture }) {
@@ -15,6 +15,7 @@ export default function TextureList() {
   const s = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
+  const [cat, setCat] = useState("all");
   const [adding, setAdding] = useState(false);
   const [showJar, setShowJar] = useState(false);
 
@@ -34,7 +35,10 @@ export default function TextureList() {
     setAdding(false);
   };
 
-  const list = s.project.textures.filter((t) => t.name.toLowerCase().includes(q.toLowerCase()) || t.mcPath.toLowerCase().includes(q.toLowerCase()));
+  const categories = ["all", ...Array.from(new Set(s.project.textures.map((t) => t.category))).sort()];
+  const list = s.project.textures.filter((t) =>
+    (cat === "all" || t.category === cat) &&
+    (t.name.toLowerCase().includes(q.toLowerCase()) || t.mcPath.toLowerCase().includes(q.toLowerCase())));
 
   return (
     <div className="flex h-full w-60 shrink-0 flex-col border-r border-line bg-ink-900">
@@ -45,13 +49,22 @@ export default function TextureList() {
             className="w-full rounded-md border border-line bg-ink-850 py-1 pl-7 pr-2 text-xs outline-none focus:border-accent-dim" />
         </div>
       </div>
+      {categories.length > 2 && (
+        <div className="border-b border-line px-2 py-1.5">
+          <select value={cat} onChange={(e) => setCat(e.target.value)}
+            className="w-full rounded-md border border-line bg-ink-850 px-2 py-1 text-xs capitalize outline-none focus:border-accent-dim">
+            {categories.map((c) => <option key={c} value={c}>{c === "all" ? "All categories" : c}</option>)}
+          </select>
+        </div>
+      )}
       <div className="flex gap-1 border-b border-line p-2">
         <button onClick={() => setAdding((v) => !v)} className="btn btn-soft flex-1 text-xs"><Plus size={13} /> New</button>
         <button onClick={() => fileRef.current?.click()} className="btn btn-soft flex-1 text-xs"><Upload size={13} /> Upload</button>
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => onUpload(e.target.files)} />
       </div>
-      <div className="border-b border-line p-2">
-        <button onClick={() => setShowJar(true)} className="btn btn-accent w-full text-xs"><Package size={13} /> Import vanilla .jar</button>
+      <div className="flex gap-1 border-b border-line p-2">
+        <button onClick={() => s.setPanel("vanilla")} className="btn btn-accent flex-1 text-xs"><Boxes size={13} /> Vanilla assets</button>
+        <button onClick={() => setShowJar(true)} title="Import from a local .jar instead" className="btn btn-soft text-xs"><Package size={13} /></button>
       </div>
       {showJar && <JarImport onClose={() => setShowJar(false)} />}
       {adding && (

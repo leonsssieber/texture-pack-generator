@@ -5,7 +5,7 @@ import { emptyFrame, cloneFrame, uid } from "./image";
 import { starterTextures } from "./starter";
 import { saveProject, loadProject } from "./storage";
 
-export type Panel = "editor" | "batch" | "animate" | "skin" | "sounds" | "preview" | "export";
+export type Panel = "editor" | "vanilla" | "batch" | "animate" | "skin" | "sounds" | "preview" | "export";
 
 interface EditorState {
   project: Project;
@@ -63,6 +63,10 @@ interface EditorState {
   addSound: (s: SoundEntry) => void;
   removeSound: (id: string) => void;
   setSkin: (s: SkinData | null) => void;
+
+  // a sound event handed off from the Vanilla browser to the Sounds panel
+  pendingEvent: string | null;
+  setPendingEvent: (e: string | null) => void;
 
   setProjectMeta: (patch: Partial<Project>) => void;
   newProject: () => void;
@@ -261,6 +265,9 @@ export const useStore = create<EditorState>((setState, getState) => ({
     const project = { ...s.project, skin };
     saveProject(project); return { project, rev: s.rev + 1 };
   }),
+
+  pendingEvent: null,
+  setPendingEvent: (e) => setState({ pendingEvent: e }),
 
   setProjectMeta: (patch) => setState((s) => {
     const project = { ...s.project, ...patch };

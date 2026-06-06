@@ -28,6 +28,35 @@ export async function openJar(file: File): Promise<JarHandle> {
   return { zip, entries, groups };
 }
 
+// Decode a single jar entry into an editable Texture (handles animation .mcmeta).
+export async function decodeEntry(handle: JarHandle, e: JarHandle["entries"][number]): Promise<Texture> {
+  const blob = await handle.zip.file(e.full)!.async("blob");
+  const { frame, w, h } = await fileToFrame(blob);
+
+  // animation strip detection via sibling .mcmeta
+  let frames: Frame[] = [{ data: frame.data }];
+  let tw = w, th = h, frametime = 2, interpolate = false;
+  const meta = handle.zip.file(e.full + ".mcmeta");
+  const isStrip = h > w && h % w === 0;
+  if (meta && isStrip) {
+    try {
+      const mj = JSON.parse(await meta.async("string"));
+      if (mj.animation) {
+        const count = h / w;
+        const per = w * w * 4;
+        frames = [];
+        for (let i = 0; i < count; i++) frames.push({ data: frame.data.slice(i * per, (i + 1) * per) });
+        tw = w; th = w;
+        frametime = mj.animation.frametime ?? 1;
+        interpolate = !!mj.animation.interpolate;
+      }
+    } catch { /* ignore bad mcmeta */ }
+  }
+
+  const name = e.mcPath.split("/").pop()!;
+  return { id: uid(), name, category: e.group, mcPath: e.mcPath, width: tw, height: th, frames, frametime, interpolate };
+}
+
 // Phase 2: decode the chosen groups into editable textures.
 export async function importGroups(
   handle: JarHandle,
@@ -39,31 +68,7 @@ export async function importGroups(
   let done = 0;
   for (const e of chosen) {
     try {
-      const blob = await handle.zip.file(e.full)!.async("blob");
-      const { frame, w, h } = await fileToFrame(blob);
-
-      // animation strip detection via sibling .mcmeta
-      let frames: Frame[] = [{ data: frame.data }];
-      let tw = w, th = h, frametime = 2, interpolate = false;
-      const meta = handle.zip.file(e.full + ".mcmeta");
-      const isStrip = h > w && h % w === 0;
-      if (meta && isStrip) {
-        try {
-          const mj = JSON.parse(await meta.async("string"));
-          if (mj.animation) {
-            const count = h / w;
-            const per = w * w * 4;
-            frames = [];
-            for (let i = 0; i < count; i++) frames.push({ data: frame.data.slice(i * per, (i + 1) * per) });
-            tw = w; th = w;
-            frametime = mj.animation.frametime ?? 1;
-            interpolate = !!mj.animation.interpolate;
-          }
-        } catch { /* ignore bad mcmeta */ }
-      }
-
-      const name = e.mcPath.split("/").pop()!;
-      out.push({ id: uid(), name, category: e.group, mcPath: e.mcPath, width: tw, height: th, frames, frametime, interpolate });
+      out.push(await decodeEntry(handle, e));
     } catch { /* skip unreadable entry */ }
     done++;
     if (onProgress && done % 25 === 0) onProgress(done, chosen.length);

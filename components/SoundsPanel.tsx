@@ -1,8 +1,8 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/image";
-import { Volume2, Upload, Trash2, Play } from "lucide-react";
+import { Volume2, Upload, Trash2, Play, Boxes } from "lucide-react";
 
 const COMMON_EVENTS = [
   "block.stone.break", "block.grass.break", "block.wood.break",
@@ -15,7 +15,19 @@ export default function SoundsPanel() {
   const s = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [event, setEvent] = useState(COMMON_EVENTS[0]);
+  const [justSet, setJustSet] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // a vanilla sound chosen in the Vanilla browser hands its event over here
+  useEffect(() => {
+    if (s.pendingEvent) {
+      setEvent(s.pendingEvent);
+      s.setPendingEvent(null);
+      setJustSet(true);
+      const t = setTimeout(() => setJustSet(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [s.pendingEvent]);
 
   const onFiles = async (files: FileList | null) => {
     if (!files) return;
@@ -35,15 +47,17 @@ export default function SoundsPanel() {
       <div className="mb-4 flex items-center gap-2">
         <Volume2 size={18} className="text-accent" />
         <h2 className="text-lg font-semibold">Sound Replacements</h2>
-        <span className="rounded bg-ink-700 px-1.5 py-0.5 text-[10px] text-accent">200 sounds · 20 MB each (premium unlocked)</span>
+        <button onClick={() => s.setPanel("vanilla")} className="ml-auto btn btn-soft text-xs">
+          <Boxes size={13} /> Browse all vanilla sounds
+        </button>
       </div>
 
       <div className="card mb-4 p-4">
         <div className="mb-3 flex flex-wrap items-end gap-3">
           <label className="text-xs">
-            <div className="mb-1 text-neutral-400">Sound event</div>
+            <div className="mb-1 text-neutral-400">Sound event {justSet && <span className="text-accent">· filled from Vanilla browser</span>}</div>
             <input list="events" value={event} onChange={(e) => setEvent(e.target.value)}
-              className="w-72 rounded-md border border-line bg-ink-850 px-2.5 py-1.5 font-mono text-sm outline-none focus:border-accent-dim" />
+              className={`w-72 rounded-md border bg-ink-850 px-2.5 py-1.5 font-mono text-sm outline-none focus:border-accent-dim ${justSet ? "border-accent ring-1 ring-accent-dim" : "border-line"}`} />
             <datalist id="events">{COMMON_EVENTS.map((e) => <option key={e} value={e} />)}</datalist>
           </label>
           <button onClick={() => fileRef.current?.click()} className="btn btn-accent text-sm"><Upload size={14} /> Add audio (.ogg/.mp3/.wav)</button>

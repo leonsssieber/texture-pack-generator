@@ -1,9 +1,10 @@
 "use client";
 import { useStore, Panel } from "@/lib/store";
-import { Brush, Layers, Film, User, Volume2, Box, Download } from "lucide-react";
+import { Brush, Boxes, Layers, Film, User, Volume2, Box, Download } from "lucide-react";
 
 const items: { id: Panel; label: string; icon: any }[] = [
   { id: "editor", label: "Editor", icon: Brush },
+  { id: "vanilla", label: "Vanilla", icon: Boxes },
   { id: "batch", label: "Batch", icon: Layers },
   { id: "animate", label: "Animate", icon: Film },
   { id: "skin", label: "Skin", icon: User },

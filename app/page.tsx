@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import TopBar from "@/components/TopBar";
 import SideNav from "@/components/SideNav";
 import EditorPanel from "@/components/EditorPanel";
+import VanillaPanel from "@/components/VanillaPanel";
 import BatchPanel from "@/components/BatchPanel";
 import AnimatePanel from "@/components/AnimatePanel";
 import SkinPanel from "@/components/SkinPanel";
@@ -26,6 +27,7 @@ export default function Page() {
           ) : (
             <div className="h-full fade-in" key={activePanel}>
               {activePanel === "editor" && <EditorPanel />}
+              {activePanel === "vanilla" && <VanillaPanel />}
               {activePanel === "batch" && <BatchPanel />}
               {activePanel === "animate" && <AnimatePanel />}
               {activePanel === "skin" && <SkinPanel />}
